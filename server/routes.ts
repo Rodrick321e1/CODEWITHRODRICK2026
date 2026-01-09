@@ -51,11 +51,19 @@ function requireAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Trust proxy is required for stable sessions on Render
+  app.set("trust proxy", 1);
+
   // Use persistent PostgreSQL session storage for production
   app.use(
     session({
       store: new PostgresSessionStore({
-        conString: process.env.DATABASE_URL,
+        conObject: {
+          connectionString: process.env.DATABASE_URL,
+          ssl: {
+            rejectUnauthorized: false
+          }
+        },
         tableName: "session",
         createTableIfMissing: true,
       }),
@@ -64,9 +72,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         "codewithkayla-secret-key-change-in-production",
       resave: false,
       saveUninitialized: false,
+      proxy: true, // Required for stable sessions behind Render's proxy
       cookie: {
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true, // Always true for HTTPS on Render
+        sameSite: "none", // Required for cross-site sessions on some browsers
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
       },
