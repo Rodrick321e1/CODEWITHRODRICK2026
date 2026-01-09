@@ -58,12 +58,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(
     session({
       store: new PostgresSessionStore({
-        conObject: {
-          connectionString: process.env.DATABASE_URL,
-          ssl: {
-            rejectUnauthorized: false
-          }
-        },
+        conString: process.env.DATABASE_URL,
         tableName: "session",
         createTableIfMissing: true,
       }),
@@ -74,8 +69,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       saveUninitialized: false,
       proxy: true, // Required for stable sessions behind Render's proxy
       cookie: {
-        secure: true, // Always true for HTTPS on Render
-        sameSite: "none", // Required for cross-site sessions on some browsers
+        secure: process.env.NODE_ENV === "production", // Only secure in production
+        sameSite: "lax", // More permissive for initial fix
         httpOnly: true,
         maxAge: 7 * 24 * 60 * 60 * 1000,
       },
